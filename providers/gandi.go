@@ -152,7 +152,7 @@ func (g *GandiHandler) findRecords(record dns.DnsRecord, version int64) ([]gandi
 	var records []gandiRecord.RecordInfo
 	resp, err := g.record.List(g.zone.Id, version)
 	if err != nil {
-		return records, fmt.Errorf("Gandi API call has failed: %v", err)
+		return records, fmt.Errorf("Failed to find record in zone: %v", err)
 	}
 
 	name := g.parseName(record)
@@ -171,7 +171,7 @@ func (g *GandiHandler) GetRecords() ([]dns.DnsRecord, error) {
 
 	recordResp, err := g.record.List(g.zone.Id, g.zone.Version)
 	if err != nil {
-		return records, fmt.Errorf("Gandi API call has failed: %v", err)
+		return records, fmt.Errorf("Failed to get records in zone: %v", err)
 	}
 
 	recordMap := map[string]map[string][]string{}
@@ -237,7 +237,7 @@ func (g *GandiHandler) versionAddRecord(version int64, record dns.DnsRecord) err
 
 		_, err := g.record.Add(args)
 		if err != nil {
-			return fmt.Errorf("Gandi API call has failed: %v", err)
+			return fmt.Errorf("Failed to add record: %v", err)
 		}
 	}
 
@@ -254,7 +254,7 @@ func (g *GandiHandler) versionRemoveRecord(version int64, record dns.DnsRecord) 
 		logrus.Infof("Removing record %s with ID %v", rec.Name, rec.Id)
 		_, err := g.record.Delete(g.zone.Id, version, rec.Id)
 		if err != nil {
-			return fmt.Errorf("Gandi API call has failed: %v", err)
+			return fmt.Errorf("Failed to remove record: %v", err)
 		}
 	}
 
