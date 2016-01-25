@@ -16,6 +16,7 @@ import (
 
 type GandiHandler struct {
 	record      *gandiRecord.Record
+	zoneHandler *gandiZone.Zone
 	zone        *gandiZone.ZoneInfoBase
 	zoneVersion *gandiZoneVersion.Version
 	root        string
@@ -83,6 +84,7 @@ func init() {
 	gandiHandler.zoneDomain = zoneDomain
 	gandiHandler.zoneSuffix = fmt.Sprintf(".%s", zoneDomain)
 	gandiHandler.sub = strings.TrimSuffix(root, zoneDomain)
+	gandiHandler.zoneHandler = zone
 
 	logrus.Infof("Configured %s for domain %s using hosted zone %q ", gandiHandler.GetName(), root, gandiHandler.zone.Name)
 }
@@ -260,7 +262,13 @@ func (g *GandiHandler) versionRemoveRecord(version int64, record dns.DnsRecord) 
 }
 
 func (g *GandiHandler) newZoneVersion() (int64, error) {
-	newVersion, err := g.zoneVersion.New(g.zone.Id, g.zone.Version)
+	// Get latest zone version
+	zoneInfo, err := g.zoneHandler.Info(g.zone.Id)
+	if err != nil {
+		logrus.Fatalf("Failed to refresh zone information: %v", g.zone.Name, err)
+	}
+
+	newVersion, err := g.zoneVersion.New(g.zone.Id, zoneInfo.Version)
 	if err != nil {
 		logrus.Fatalf("Failed to create new version of zone %s: %v", g.zone.Name, err)
 	}
