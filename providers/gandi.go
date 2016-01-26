@@ -23,6 +23,7 @@ type GandiHandler struct {
 	zoneDomain  string
 	zoneSuffix  string
 	sub         string
+	baseVersion int64
 }
 
 func init() {
@@ -265,7 +266,7 @@ func (g *GandiHandler) newZoneVersion() (int64, error) {
 	// Get latest zone version
 	zoneInfo, err := g.zoneHandler.Info(g.zone.Id)
 	if err != nil {
-		logrus.Fatalf("Failed to refresh zone information: %v", g.zone.Name, err)
+		logrus.Fatalf("Failed to refresh zone information: %v", err)
 	}
 
 	newVersion, err := g.zoneVersion.New(g.zone.Id, zoneInfo.Version)
@@ -273,11 +274,29 @@ func (g *GandiHandler) newZoneVersion() (int64, error) {
 		logrus.Fatalf("Failed to create new version of zone %s: %v", g.zone.Name, err)
 	}
 
+	// Store base version
+	g.baseVersion = zoneInfo.Version
+
 	return newVersion, nil
 }
 
 func (g *GandiHandler) setZoneVersion(version int64) (error) {
-	_, err := g.zoneVersion.Set(g.zone.Id, version)
+	// Check that we won't create a conflict
+	zoneInfo, err := g.zoneHandler.Info(g.zone.Id)
+	if err != nil {
+		logrus.Fatalf("Failed to check current zone version: %v", err)
+	}
+
+	if zoneInfo.Version != g.baseVersion {
+		_, err = g.zoneVersion.Delete(g.zone.Id, version)
+		if err != nil {
+			logrus.Fatalf("Failed to delete conflicting zone version %v. Remove it manually.", version)
+		}
+
+		logrus.Fatalf("Conflict detected, not saving zone to version %v", version)
+	}
+
+	_, err = g.zoneVersion.Set(g.zone.Id, version)
 	if err != nil {
 		logrus.Fatalf("Failed to set version of zone %s to %v: %v", g.zone.Name, version, err)
 	}
