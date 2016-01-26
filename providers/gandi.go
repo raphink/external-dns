@@ -282,11 +282,13 @@ func (g *GandiHandler) newZoneVersion() (int64, error) {
 
 func (g *GandiHandler) setZoneVersion(version int64) (error) {
 	// Check that we won't create a conflict
+	logrus.Infof("Getting latest version of zone file")
 	zoneInfo, err := g.zoneHandler.Info(g.zone.Id)
 	if err != nil {
 		return fmt.Errorf("Failed to check current zone version: %v", err)
 	}
 
+	logrus.Infof("Check that base zone version %v does not conflict with %v", g.baseVersion, zoneInfo.Version)
 	if zoneInfo.Version != g.baseVersion {
 		_, err = g.zoneVersion.Delete(g.zone.Id, version)
 		if err != nil {
@@ -296,6 +298,7 @@ func (g *GandiHandler) setZoneVersion(version int64) (error) {
 		return fmt.Errorf("Conflict detected, not saving zone to version %v", version)
 	}
 
+	logrus.Infof("Setting zone version to %v", version)
 	_, err = g.zoneVersion.Set(g.zone.Id, version)
 	if err != nil {
 		return fmt.Errorf("Failed to set version of zone %s to %v: %v", g.zone.Name, version, err)
